@@ -38,7 +38,7 @@ import net.runelite.client.ui.NavigationButton;
 	name = "TFA Splits Tracker",
 	description = "Fractured Archive raid history, server room splits, total times and party members",
 	tags = {"tfa", "fractured", "archive", "raid", "splits", "timer", "party"},
-	enabledByDefault = false
+	enabledByDefault = true
 )
 public class TfaSplitsTrackerPlugin extends Plugin
 {
