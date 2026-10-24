@@ -48,3 +48,9 @@ For example, an Ezekiel split compares directly against a Bork split in Room 2. 
 - **Reset current tracker:** Right-click the live raid card to discard the current attempt and wait for the next Archive Guardian start. Resetting the live tracker cannot be undone.
 
 Deleted records stay removed when earlier game messages are replayed.
+
+
+<img width="241" height="853" alt="image" src="https://github.com/user-attachments/assets/37b3cfff-2354-44a7-89e2-0065da818636" />
+<img width="237" height="360" alt="image" src="https://github.com/user-attachments/assets/5102e76d-8407-40f3-848f-395a9c1b8ea4" />
+
+
