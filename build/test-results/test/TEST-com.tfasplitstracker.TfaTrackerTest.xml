@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tfasplitstracker.TfaTrackerTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-24T05:22:05" hostname="DESKTOP-EUT9B7O" time="0.021">
+  <properties/>
+  <testcase name="deletedRaidStaysDeletedAfterPersistenceAndChatReplay" classname="com.tfasplitstracker.TfaTrackerTest" time="0.003"/>
+  <testcase name="resettingActiveRunSuppressesRemainingEventsUntilNextRaid" classname="com.tfasplitstracker.TfaTrackerTest" time="0.002"/>
+  <testcase name="supportHourLongRunsAndRepeatedFirstRoomAttempts" classname="com.tfasplitstracker.TfaTrackerTest" time="0.0"/>
+  <testcase name="replayServerMessagesForThreeFourFiveAndSixPlayers" classname="com.tfasplitstracker.TfaTrackerTest" time="0.008"/>
+  <testcase name="deleteRoomPreservesServerTotalAndUndoRestoresCompleteHistory" classname="com.tfasplitstracker.TfaTrackerTest" time="0.001"/>
+  <testcase name="recognizeAlternativeBossNamesWithoutChangingStoredKeys" classname="com.tfasplitstracker.TfaTrackerTest" time="0.001"/>
+  <testcase name="recoverWithoutAnyStartCallbacks" classname="com.tfasplitstracker.TfaTrackerTest" time="0.001"/>
+  <testcase name="journalSurvivesRestartAndConsecutiveRuns" classname="com.tfasplitstracker.TfaTrackerTest" time="0.003"/>
+  <testcase name="undoOldDeletionDoesNotReplaceNewActiveRun" classname="com.tfasplitstracker.TfaTrackerTest" time="0.001"/>
+  <testcase name="localDeathIsNotRaidFailureAndAllEightPartySlotsAreSupported" classname="com.tfasplitstracker.TfaTrackerTest" time="0.001"/>
+  <testcase name="recoverFinalTotalWithoutOcellusCallback" classname="com.tfasplitstracker.TfaTrackerTest" time="0.0"/>
+  <testcase name="detectNewRunEvenWhenItsFirstStartWasMissed" classname="com.tfasplitstracker.TfaTrackerTest" time="0.0"/>
+  <testcase name="ignoreOtherRaidsAndClanBroadcastsAndMarkMissingRooms" classname="com.tfasplitstracker.TfaTrackerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tfasplitstracker.TfaSplitsTrackerPanelTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-24T05:22:04" hostname="DESKTOP-EUT9B7O" time="0.619">
+  <properties/>
+  <testcase name="renderNarrowSidebarWithExpandedHistory" classname="com.tfasplitstracker.TfaSplitsTrackerPanelTest" time="0.12"/>
+  <testcase name="groupByLocalStartDayWithFilteredCountsAndCollapsibleDays" classname="com.tfasplitstracker.TfaSplitsTrackerPanelTest" time="0.15"/>
+  <testcase name="contextMenusDeleteSavedRecordsAndResetLiveTracker" classname="com.tfasplitstracker.TfaSplitsTrackerPanelTest" time="0.349"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

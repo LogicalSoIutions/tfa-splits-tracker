@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tfasplitstracker.TfaSplitsTrackerPluginTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-24T05:22:05" hostname="DESKTOP-EUT9B7O" time="0.74">
+  <properties/>
+  <testcase name="gameTickRecoversMissedChatCallbackAndCapturesAuthoritativeParty" classname="com.tfasplitstracker.TfaSplitsTrackerPluginTest" time="0.74"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

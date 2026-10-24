@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tfasplitstracker.TfaRaidComparisonPanelTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-24T05:22:04" hostname="DESKTOP-EUT9B7O" time="0.398">
+  <properties/>
+  <testcase name="compareDifferentBossesByStageAndNeverInventMissingTimes" classname="com.tfasplitstracker.TfaRaidComparisonPanelTest" time="0.066"/>
+  <testcase name="teamSizeFilterCombinesWithSearchAndPreservesComparison" classname="com.tfasplitstracker.TfaRaidComparisonPanelTest" time="0.193"/>
+  <testcase name="compareRecordedServerSplitsAndChangeBaseline" classname="com.tfasplitstracker.TfaRaidComparisonPanelTest" time="0.011"/>
+  <testcase name="enforceFiveRaidLimitAndReconcileDeletedSelections" classname="com.tfasplitstracker.TfaRaidComparisonPanelTest" time="0.019"/>
+  <testcase name="renderComparisonWindowContents" classname="com.tfasplitstracker.TfaRaidComparisonPanelTest" time="0.108"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
