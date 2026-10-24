@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Dialog;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -29,6 +30,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JMenuItem;
@@ -67,6 +69,9 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 	private final Timer clock;
 	private final BiConsumer<String, String> delete;
 	private final JButton undo = new JButton("Undo last deletion");
+	private final JButton compare = new JButton("Compare Raids");
+	private JDialog comparisonWindow;
+	private TfaRaidComparisonPanel comparisonPanel;
 
 	TfaSplitsTrackerPanel()
 	{
@@ -98,6 +103,13 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		add(live);
 		add(Box.createVerticalStrut(14));
 		add(label("RAID HISTORY", 11, MUTED));
+		compare.setAlignmentX(LEFT_ALIGNMENT);
+		compare.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+		compare.setBackground(CARD);
+		compare.setForeground(ACCENT);
+		compare.addActionListener(e -> openComparison());
+		add(Box.createVerticalStrut(7));
+		add(compare);
 		undo.setForeground(ACCENT);
 		undo.setAlignmentX(LEFT_ALIGNMENT);
 		undo.setContentAreaFilled(false);
@@ -151,13 +163,23 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 
 	void stop()
 	{
-		if (SwingUtilities.isEventDispatchThread())
+		Runnable close = () ->
 		{
 			clock.stop();
+			if (comparisonWindow != null)
+			{
+				comparisonWindow.dispose();
+				comparisonWindow = null;
+				comparisonPanel = null;
+			}
+		};
+		if (SwingUtilities.isEventDispatchThread())
+		{
+			close.run();
 		}
 		else
 		{
-			SwingUtilities.invokeLater(clock::stop);
+			SwingUtilities.invokeLater(close);
 		}
 	}
 
@@ -166,6 +188,11 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		data = snapshot;
 		liveAvailable = available;
 		undo.setVisible(data.deleted != null);
+		compare.setEnabled(data.raids.stream().anyMatch(r -> !r.active()));
+		if (comparisonWindow != null && comparisonWindow.isDisplayable())
+		{
+			comparisonPanel.setRaids(data.raids);
+		}
 		notice.setText(storageHealthy ? "" : "History could not be loaded/saved.");
 		long completed = data.raids.stream().filter(r -> "Completed".equals(r.status)).count();
 		count.setText(Long.toString(completed));
@@ -175,6 +202,22 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		best.setToolTipText("Best total among fully recorded raids; history can be filtered by team size below");
 		rebuildLive();
 		rebuildHistory();
+	}
+
+	private void openComparison()
+	{
+		if (comparisonWindow == null || !comparisonWindow.isDisplayable())
+		{
+			comparisonPanel = new TfaRaidComparisonPanel(data.raids);
+			comparisonWindow = new JDialog(SwingUtilities.getWindowAncestor(this), "TFA Splits Tracker — Compare Raids", Dialog.ModalityType.MODELESS);
+			comparisonWindow.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+			comparisonWindow.setContentPane(comparisonPanel);
+			comparisonWindow.setMinimumSize(new Dimension(900, 450));
+			comparisonWindow.setSize(1200, 650);
+			comparisonWindow.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
+		}
+		comparisonWindow.setVisible(true);
+		comparisonWindow.toFront();
 	}
 
 	private void rebuildLive()
