@@ -1,7 +1,6 @@
 package com.tfasplitstracker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,8 +10,6 @@ import java.util.regex.Pattern;
 /** Event reducer shared by live chat, chat-buffer recovery, and recorded-log tests. */
 final class TfaTracker
 {
-	static final Set<String> ROOMS = new LinkedHashSet<>(Arrays.asList("Archive Guardian", "Bork",
-		"Dagon'hai Trio", "Ezekiel", "Dreadnoth the Jellied", "Moia", "Xarth", "Ocellus"));
 	private static final String TIME = "(\\d+:\\d{2}(?::\\d{2})?(?:\\.\\d{1,3})?)";
 	private static final Pattern START = Pattern.compile("^Challenge started: (.+)\\.$");
 	private static final Pattern SPLIT = Pattern.compile("^Challenge complete: (.+)\\. Duration: " + TIME + "\\. Total: " + TIME + ".*$");
@@ -96,8 +93,10 @@ final class TfaTracker
 		Matcher split = SPLIT.matcher(message);
 		Matcher total = TOTAL.matcher(message);
 		Matcher ready = READY.matcher(message);
-		boolean isStart = start.matches() && ROOMS.contains(start.group(1));
-		boolean isSplit = split.matches() && ROOMS.contains(split.group(1));
+		TfaRoom startRoom = start.matches() ? TfaRoom.find(start.group(1)) : null;
+		TfaRoom completedRoom = split.matches() ? TfaRoom.find(split.group(1)) : null;
+		boolean isStart = startRoom != null;
+		boolean isSplit = completedRoom != null;
 		boolean isTotal = total.matches();
 		boolean isReady = ready.matches() && current() != null;
 		boolean failed = message.equals("You failed to survive the Fractured Archive.");
@@ -119,7 +118,7 @@ final class TfaTracker
 		lastEvent = timestamp;
 		if (suppressUntilNextRaid)
 		{
-			if (isStart && start.group(1).equals("Archive Guardian"))
+			if (isStart && startRoom == TfaRoom.GUARDIAN)
 			{
 				suppressUntilNextRaid = false;
 			}
@@ -130,7 +129,7 @@ final class TfaTracker
 		}
 		if (isStart)
 		{
-			String room = start.group(1);
+			String room = startRoom.key;
 			TfaRaid raid = current();
 			TfaRaid.Split previous = raid == null || raid.splits.isEmpty() ? null : raid.splits.get(raid.splits.size() - 1);
 			if (previous != null && room.equals(previous.room) && previous.duration < 0 && previous.started == timestamp)
@@ -154,7 +153,7 @@ final class TfaTracker
 		}
 		else if (isSplit)
 		{
-			String room = split.group(1);
+			String room = completedRoom.key;
 			long duration = parseTime(split.group(2));
 			long cumulative = parseTime(split.group(3));
 			TfaRaid raid = current();

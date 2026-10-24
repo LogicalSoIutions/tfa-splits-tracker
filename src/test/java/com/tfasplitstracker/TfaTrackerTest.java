@@ -247,6 +247,28 @@ public class TfaTrackerTest
 	}
 
 	@Test
+	public void recognizeAlternativeBossNamesWithoutChangingStoredKeys()
+	{
+		TfaTracker tracker = new TfaTracker();
+		tracker.accept("Challenge started: Archive Guardian.", 1000);
+		tracker.accept("Challenge complete: Archive Guardian. Duration: 1:00.00. Total: 1:00.00", 61000);
+		tracker.accept("Challenge started: Bork and the Smorks.", 62000);
+		tracker.accept("Challenge complete: Bork and the Smorks. Duration: 1:00.00. Total: 2:01.00", 122000);
+		tracker.accept("Challenge started: Moia.", 123000);
+		tracker.accept("Challenge complete: Moia. Duration: 1:00.00. Total: 3:02.00", 183000);
+		tracker.accept("Challenge started: Dagon'hai Elder and monks.", 184000);
+		tracker.accept("Challenge complete: Dagon'hai Elder and monks. Duration: 1:00.00. Total: 4:03.00", 244000);
+		tracker.accept("Challenge started: Ocellus.", 245000);
+		tracker.accept("Challenge complete: Ocellus. Duration: 1:00.00. Total: 5:04.00", 305000);
+		TfaRaid raid = tracker.raids.get(0);
+		assertTrue(raid.completeSplits());
+		assertEquals("Bork", raid.splits.get(1).room);
+		assertEquals("Dagon'hai Trio", raid.splits.get(3).room);
+		assertEquals(TfaRoom.DAGONHAI, TfaRoom.find("Dagon’hai Elder and monks"));
+		assertEquals(5, raid.splits.size());
+	}
+
+	@Test
 	public void ignoreOtherRaidsAndClanBroadcastsAndMarkMissingRooms()
 	{
 		TfaTracker tracker = new TfaTracker();

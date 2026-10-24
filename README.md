@@ -28,7 +28,17 @@ Raids are grouped by their start date in your local time zone. The live raid app
 
 Click **Compare Raids** to open a separate window and select up to five saved raids. Compare room splits, combat time, time between rooms, total raid time, team sizes, and party members side by side.
 
-Choose any selected raid as the baseline. Differences show how much faster (green) or slower (red) each time is than that run. Rooms align by name, so different paths are shown without pairing unrelated bosses. Missing splits display a dash, and partial histories do not produce estimated combat or transition totals. Search the selection list by date, party member, status, or team size.
+Choose any selected raid as the baseline. Differences show how much faster (green) or slower (red) each time is than that run. Rooms compare by raid stage, with each cell identifying the boss fought:
+
+| Stage | Bosses compared |
+| --- | --- |
+| Room 1 | Archive Guardian |
+| Room 2 | Ezekiel or Bork & the Smorks |
+| Room 3 | Moia or Dreadnoth the Jellied |
+| Room 4 | Dagon'hai Elder and monks or Xarth |
+| Room 5 | Ocellus |
+
+For example, an Ezekiel split compares directly against a Bork split in Room 2. The Quartermaster visit does not add a boss row. Missing splits display a dash, and partial histories do not produce estimated combat or transition totals. Filter the selection list by team size, or search by date, party member, or status. Changing filters keeps your selected raids and baseline in the comparison so you can also compare different team sizes.
 
 ## Manage your records
 

@@ -213,7 +213,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 			comparisonWindow.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			comparisonWindow.setContentPane(comparisonPanel);
 			comparisonWindow.setMinimumSize(new Dimension(900, 450));
-			comparisonWindow.setSize(1200, 650);
+			comparisonWindow.setSize(1200, 760);
 			comparisonWindow.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
 		}
 		comparisonWindow.setVisible(true);
