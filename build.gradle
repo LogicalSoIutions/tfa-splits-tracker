@@ -1,0 +1,51 @@
+plugins {
+	id 'java'
+}
+
+repositories {
+	maven {
+		url = 'https://repo.runelite.net'
+		content { includeGroupByRegex('net\\.runelite.*') }
+	}
+	mavenCentral()
+}
+
+def runeLiteVersion = providers.gradleProperty('runeLiteVersion').getOrElse('latest.release')
+
+group = 'com.tfasplitstracker'
+version = '1.0.0'
+
+dependencies {
+	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+	testImplementation 'junit:junit:4.13.2'
+	testImplementation 'org.mockito:mockito-core:4.11.0'
+	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+	options.release.set(11)
+}
+
+tasks.register('run', JavaExec) {
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.tfasplitstracker.TfaSplitsTrackerLauncher'
+	jvmArgs '-ea'
+	args '--developer-mode', '--debug'
+}
+
+processResources {
+	from('runelite-plugin.properties')
+}
+
+jar {
+	archiveFileName.set('tfa-splits-tracker.jar')
+	from('LICENSE')
+}
+
+test {
+	systemProperty 'java.awt.headless', 'true'
+}
