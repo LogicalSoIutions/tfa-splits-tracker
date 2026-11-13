@@ -17,8 +17,12 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.MessageNode;
+import net.runelite.api.NPC;
 import net.runelite.api.WorldView;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.AnimationChanged;
+import net.runelite.api.events.NpcChanged;
+import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GameStateChanged;
@@ -57,9 +61,10 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	@Inject private Gson gson;
 	@Inject private TfaSplitsTrackerConfig config;
 	@Inject private ChatMessageManager chatMessageManager;
-	@Inject private OverlayManager overlayManager;
 	@Inject private InfoBoxManager infoBoxManager;
+	@Inject private OverlayManager overlayManager;
 	@Inject private TfaSplitsOverlay overlay;
+	private TfaOcellus ocellus = new TfaOcellus();
 	private TfaTracker tracker = new TfaTracker();
 	private TfaSplitsTrackerPanel panel;
 	private NavigationButton navigation;
@@ -68,6 +73,8 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	private volatile boolean liveAvailable;
 	private volatile TfaRaid displayRaid;
 	private volatile TfaLiveState liveState = TfaLiveState.UNAVAILABLE;
+	private boolean raidSessionActive;
+	private boolean awaitingRaidStart;
 
 	@Provides
 	TfaSplitsTrackerConfig provideConfig(ConfigManager manager)
@@ -100,9 +107,12 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	{
 		running = false;
 		overlayManager.remove(overlay);
+		ocellus = new TfaOcellus();
 		infoBoxManager.removeIf(box -> box instanceof TfaSplitInfoBox);
 		displayRaid = null;
 		liveState = TfaLiveState.UNAVAILABLE;
+		raidSessionActive = false;
+		awaitingRaidStart = false;
 		toolbar.removeNavigation(navigation);
 		panel.stop();
 		// Every accepted timing and roster update has already been persisted.
@@ -136,12 +146,64 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		{
 			// Reconcile older messages first, including when a callback was not delivered.
 			reconcile(true);
-			if (accept(event.getMessage(), event.getTimestamp() * 1000L, true))
+			boolean changed = accept(event.getMessage(), event.getTimestamp() * 1000L, true);
+			TfaRaid.Split room = liveOcellus();
+			if (room != null && room.started == event.getTimestamp() * 1000L
+				&& "Challenge started: Ocellus.".equals(TfaLiveState.clean(event.getMessage())))
+			{
+				int previous = room.phases.size();
+				ocellus.begin(room, client.getTickCount());
+				changed |= room.phases.size() != previous;
+			}
+			if (changed)
 			{
 				captureParty();
 				saveAndPublish();
 			}
 		}
+	}
+
+	@Subscribe
+	public void onNpcChanged(NpcChanged event) { observeOcellus(event.getNpc(), false, true); }
+
+	@Subscribe
+	public void onNpcSpawned(NpcSpawned event) { observeOcellus(event.getNpc(), false, false); }
+
+	@Subscribe
+	public void onAnimationChanged(AnimationChanged event)
+	{
+		if (event.getActor() instanceof NPC && event.getActor().getAnimation() == TfaOcellus.DESTROY_QUADRANT_ANIMATION)
+		{
+			observeOcellus((NPC) event.getActor(), true, true);
+		}
+	}
+
+	private void observeOcellus(NPC npc, boolean quadrantDestroyed, boolean boundary)
+	{
+		if (!running || configManager.getRSProfileKey() == null || client.getGameState() != GameState.LOGGED_IN
+			|| npc.getWorldView() != client.getTopLevelWorldView()
+			|| npc.getId() != TfaOcellus.VINES_NPC && npc.getId() != TfaOcellus.PORTALS_NPC
+				&& npc.getId() != TfaOcellus.QUADRANTS_NPC) { return; }
+		reconcile(true);
+		TfaRaid.Split room = liveOcellus();
+		if (room == null) { return; }
+		TfaRaid before = tracker.current().copy();
+		boolean changed = quadrantDestroyed
+			? npc.getId() == TfaOcellus.QUADRANTS_NPC && ocellus.destroyQuadrant(room, client.getTickCount())
+			: ocellus.observe(room, npc.getId(), client.getTickCount(), boundary);
+		if (changed)
+		{
+			announce(before);
+			saveAndPublish();
+		}
+	}
+
+	private TfaRaid.Split liveOcellus()
+	{
+		TfaRaid raid = tracker.current();
+		if (raid == null || raid.splits.isEmpty()) { return null; }
+		TfaRaid.Split last = raid.splits.get(raid.splits.size() - 1);
+		return "Ocellus".equals(last.room) && last.duration < 0 ? last : null;
 	}
 
 	@Subscribe
@@ -171,9 +233,27 @@ public class TfaSplitsTrackerPlugin extends Plugin
 
 	private void updateLiveState(TfaLiveState state)
 	{
+		boolean enteredRaid = state.inRaid && !raidSessionActive;
+		if (enteredRaid)
+		{
+			raidSessionActive = true;
+			awaitingRaidStart = tracker.current() == null;
+		}
+		WorldView world = client.getTopLevelWorldView();
+		if (client.getGameState() == GameState.LOGGED_IN && client.getLocalPlayer() != null
+			&& world != null && !world.isInstance())
+		{
+			raidSessionActive = false;
+			awaitingRaidStart = false;
+		}
 		TfaLiveState previous = liveState;
 		if (state.inRaid == previous.inRaid && state.elapsed == previous.elapsed && state.status.equals(previous.status)) { return; }
 		liveState = state;
+		if (enteredRaid)
+		{
+			// A new instance starts with no splits, before the first challenge chat arrives.
+			publish();
+		}
 		TfaSplitsTrackerPanel target = panel;
 		SwingUtilities.invokeLater(() ->
 		{
@@ -183,14 +263,27 @@ public class TfaSplitsTrackerPlugin extends Plugin
 
 	private TfaLiveState readLiveState()
 	{
-		if (client.getGameState() != GameState.LOGGED_IN) { return TfaLiveState.UNAVAILABLE; }
+		if (client.getGameState() != GameState.LOGGED_IN)
+		{
+			return client.getGameState() == GameState.LOADING && raidSessionActive
+				? new TfaLiveState(true, "Loading raid", -1) : TfaLiveState.UNAVAILABLE;
+		}
 		boolean hudVisible = raidHudVisible();
 		WorldView world = client.getTopLevelWorldView();
-		boolean inRaid = world != null && world.isInstance() && hudVisible;
+		// The game hides the HUD between encounters; the instance/session outlives it.
+		boolean inRaid = world != null && world.isInstance()
+			&& (hudVisible || raidSessionActive || tracker.current() != null);
 		Widget status = client.getWidget(inRaid ? InterfaceID.TfaHud.RAID_STATE : InterfaceID.TfaHud.STATUS);
 		Widget clock = client.getWidget(InterfaceID.TfaHud.RAID_TIMER);
-		return new TfaLiveState(inRaid, !hudVisible || status == null || status.isHidden() ? "" : TfaLiveState.clean(status.getText()),
-			!inRaid || clock == null || clock.isHidden() ? -1 : TfaLiveState.parseClock(clock.getText()));
+		String text = !hudVisible || status == null || status.isHidden() ? "" : TfaLiveState.clean(status.getText());
+		if (inRaid && !hudVisible)
+		{
+			TfaRaid raid = tracker.current();
+			TfaRaid.Split last = raid == null || raid.splits.isEmpty() ? null : raid.splits.get(raid.splits.size() - 1);
+			text = last != null && last.duration >= 0 ? "Between rooms" : "Raid HUD unavailable";
+		}
+		return new TfaLiveState(inRaid, text,
+			!inRaid || !hudVisible || clock == null || clock.isHidden() ? -1 : TfaLiveState.parseClock(clock.getText()));
 	}
 
 	private void refreshRaidState()
@@ -261,24 +354,34 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	{
 		TfaRaid before = tracker.raids.isEmpty() ? null : tracker.raids.get(0).copy();
 		if (!tracker.accept(message, timestamp)) { return false; }
+		TfaRaid latest = tracker.raids.isEmpty() ? null : tracker.raids.get(0);
+		if (latest != null && (latest.active() || before == null || !before.id.equals(latest.id)))
+		{
+			awaitingRaidStart = false;
+		}
 		if (announce)
 		{
-			TfaRaid after = tracker.raids.isEmpty() ? null : tracker.raids.get(0);
-			for (String text : TfaTiming.messages(before, after, config))
-			{
-				chatMessageManager.queue(QueuedMessage.builder().type(ChatMessageType.CONSOLE)
-					.runeLiteFormattedMessage(text).build());
-			}
+			announce(before);
 		}
 		return true;
+	}
+
+	private void announce(TfaRaid before)
+	{
+		TfaRaid after = tracker.raids.isEmpty() ? null : tracker.raids.get(0);
+		for (String text : TfaTiming.messages(before, after, config))
+		{
+			chatMessageManager.queue(QueuedMessage.builder().type(ChatMessageType.CONSOLE)
+				.runeLiteFormattedMessage(text).build());
+		}
 	}
 
 	TfaRaid displayRaid() { return displayRaid; }
 	TfaLiveState liveState() { return liveState; }
 
-	boolean timingVisible(boolean outsideRaid)
+	boolean timingVisible()
 	{
-		return running && client.getGameState() == GameState.LOGGED_IN && (liveState.inRaid || outsideRaid);
+		return running && client.getGameState() == GameState.LOGGED_IN && liveState.inRaid;
 	}
 
 	private boolean captureParty()
@@ -304,6 +407,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 
 	private void load()
 	{
+		ocellus = new TfaOcellus();
 		tracker = new TfaTracker();
 		storageHealthy = true;
 		try
@@ -362,7 +466,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	{
 		// Swing receives its own immutable-in-practice copy; the game thread owns the reducer.
 		TfaTracker snapshot = gson.fromJson(gson.toJson(tracker), TfaTracker.class);
-		displayRaid = snapshot.raids.isEmpty() ? null : snapshot.raids.get(0);
+		displayRaid = awaitingRaidStart || snapshot.raids.isEmpty() ? null : snapshot.raids.get(0);
 		infoBoxManager.removeIf(box -> box instanceof TfaSplitInfoBox);
 		if (displayRaid != null)
 		{

@@ -29,6 +29,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
@@ -45,6 +46,10 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 	private static final Color BORDER = new Color(57, 57, 57);
 	private static final Color TEXT = new Color(225, 225, 225);
 	private static final Color MUTED = new Color(165, 165, 165);
+	private static final Color GREEN = new Color(139, 190, 153);
+	private static final Color RED = new Color(213, 145, 140);
+	private static final Color GOLD = new Color(207, 184, 129);
+	private static final Color BLUE = new Color(151, 178, 207);
 	private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d, HH:mm").withZone(ZoneId.systemDefault());
 	private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.ENGLISH);
 	private final JPanel live = column();
@@ -85,6 +90,11 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		header.add(label("TFA Splits Tracker", 17, TEXT));
 		header.add(Box.createVerticalStrut(3));
 		header.add(label("The Fractured Archive", 11, MUTED));
+		header.setBorder(BorderFactory.createCompoundBorder(
+			BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER), BorderFactory.createEmptyBorder(0, 0, 10, 0)));
+		count.setForeground(GREEN);
+		best.setForeground(GOLD);
+		total.setForeground(BLUE);
 		add(header);
 		add(Box.createVerticalStrut(12));
 		JPanel stats = column();
@@ -237,7 +247,8 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		live.removeAll();
 		JPanel card = card();
 		TfaRaid raid = liveState.inRaid ? data.current() : null;
-		card.add(label(raid == null ? "RAID STATUS" : "LIVE RAID", 10, MUTED));
+		accent(card, raid == null ? BORDER : BLUE);
+		card.add(label(raid == null ? "RAID STATUS" : "LIVE RAID", 10, raid == null ? MUTED : BLUE));
 		card.add(Box.createVerticalStrut(6));
 		if (raid == null)
 		{
@@ -250,6 +261,19 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		{
 			card.add(total);
 			card.add(roomClock);
+			card.add(Box.createVerticalStrut(7));
+			int completedRooms = (int) raid.splits.stream().filter(s -> s.duration >= 0).count();
+			JProgressBar progress = new JProgressBar(0, 5);
+			progress.setValue(completedRooms);
+			progress.setForeground(GREEN);
+			progress.setBackground(BORDER);
+			progress.setBorderPainted(false);
+			progress.setAlignmentX(LEFT_ALIGNMENT);
+			progress.setMaximumSize(new Dimension(Integer.MAX_VALUE, 4));
+			progress.setToolTipText(completedRooms + " of 5 rooms recorded");
+			card.add(progress);
+			card.add(Box.createVerticalStrut(7));
+			card.add(label(TfaPersonalBest.status(raid), 10, raid.personalBest == null ? MUTED : GOLD));
 			card.add(Box.createVerticalStrut(10));
 			addSplits(card, raid);
 			addParty(card, raid);
@@ -279,8 +303,9 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 			roomClock.setText("Waiting for raid data");
 			return;
 		}
-		total.setText(TfaRaid.time(liveState.elapsed));
-		total.setToolTipText("Current raid time from the game's HUD");
+		total.setText(TfaRaid.time(liveState.elapsed >= 0 ? liveState.elapsed : raid.total));
+		total.setToolTipText(liveState.elapsed >= 0 ? "Current raid time from the game's HUD"
+			: "Last recorded raid split; live HUD clock unavailable");
 		TfaRaid.Split last = raid.splits.isEmpty() ? null : raid.splits.get(raid.splits.size() - 1);
 		roomClock.setText(last != null && last.duration < 0
 			? shortRoom(last.room) + "  /  In progress"
@@ -372,7 +397,9 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		});
 		card.add(toggle);
 		boolean completed = "Completed".equals(raid.status);
-		card.add(row(raid.status, TfaRaid.time(raid.total), TEXT, 15));
+		Color statusColor = completed ? GREEN : "Failed".equals(raid.status) ? RED : MUTED;
+		accent(card, statusColor);
+		card.add(row(raid.status, TfaRaid.time(raid.total), statusColor, 15));
 		card.add(Box.createVerticalStrut(4));
 		card.add(label((team == 0 ? "Unknown team" : team + (team == 1 ? " player" : " players"))
 			+ "  /  " + raid.splits.stream().filter(s -> s.duration >= 0).count() + " rooms", 10, MUTED));
@@ -420,6 +447,26 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 				attachPopup(line, menu);
 			}
 			card.add(line);
+			addPhases(card, raid, split);
+			if (raid.personalBest != null && split.duration >= 0)
+			{
+				TfaRaid.Split reference = raid.personalBest.stage(split);
+				if (reference != null && split.cumulative >= 0)
+				{
+					if (reference.room.equals(split.room))
+					{
+						long roomDelta = split.duration - reference.duration;
+						card.add(row("Room vs PB", TfaPersonalBest.delta(roomDelta),
+							roomDelta == 0 ? MUTED : roomDelta < 0 ? GREEN : RED, 10));
+					}
+					Color deltaColor = split.cumulative == reference.cumulative ? MUTED
+						: split.cumulative < reference.cumulative ? GREEN : RED;
+					JPanel delta = row("Raid vs PB", TfaPersonalBest.delta(split.cumulative - reference.cumulative), deltaColor, 10);
+					delta.setToolTipText("Against the same stage of your PB run: " + raid.personalBest.comparison(split));
+					card.add(delta);
+					if (!reference.room.equals(split.room)) { card.add(label("PB stage used " + shortRoom(reference.room), 10, MUTED)); }
+				}
+			}
 		}
 	}
 
@@ -434,6 +481,27 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 			if (child instanceof JComponent)
 			{
 				attachPopup((JComponent) child, component.getComponentPopupMenu());
+			}
+		}
+	}
+
+	private static void addPhases(JPanel card, TfaRaid raid, TfaRaid.Split split)
+	{
+		for (TfaRaid.Phase phase : split.phases)
+		{
+			boolean active = raid.active() && split.duration < 0 && phase == split.phases.get(split.phases.size() - 1);
+			JPanel line = row(TfaOcellus.label(phase.number), phase.duration >= 0 ? TfaRaid.time(phase.duration)
+				: active ? "In progress" : "Unrecorded", MUTED, 10);
+			line.setBorder(BorderFactory.createEmptyBorder(3, 6, 0, 0));
+			line.setToolTipText("Game-tick phase timing. Ocellus split: " + TfaRaid.time(phase.cumulative));
+			card.add(line);
+			TfaRaid.Phase reference = raid.personalBest == null ? null : raid.personalBest.phase(split, phase.number);
+			if (reference != null && phase.duration >= 0)
+			{
+				long delta = phase.duration - reference.duration;
+				JPanel comparison = row("Phase vs PB", TfaPersonalBest.delta(delta), delta < 0 ? GREEN : delta > 0 ? RED : MUTED, 10);
+				comparison.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+				card.add(comparison);
 			}
 		}
 	}
@@ -511,5 +579,11 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER),
 			BorderFactory.createEmptyBorder(9, 9, 9, 9)));
 		return panel;
+	}
+
+	private static void accent(JPanel card, Color color)
+	{
+		card.setBorder(BorderFactory.createCompoundBorder(
+			BorderFactory.createMatteBorder(1, 3, 1, 1, color), BorderFactory.createEmptyBorder(9, 7, 9, 9)));
 	}
 }

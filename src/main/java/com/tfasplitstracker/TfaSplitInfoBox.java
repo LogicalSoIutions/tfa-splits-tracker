@@ -29,12 +29,16 @@ final class TfaSplitInfoBox extends InfoBox
 	}
 
 	@Override public Color getTextColor() { return Color.GREEN; }
-	@Override public boolean render() { return config.showInfoBoxes() && plugin.timingVisible(false); }
+	@Override public boolean render() { return config.showInfoBoxes() && plugin.timingVisible(); }
 	@Override public String getTooltip()
 	{
+		TfaRaid raid = plugin.displayRaid();
+		String comparison = raid != null && raid.personalBest != null
+			? raid.personalBest.comparison(split) : "";
 		return !config.infoBoxTooltip() ? "" : "TFA: " + TfaTiming.label(split.room)
 			+ "<br>Room time: " + TfaRaid.time(split.duration)
-			+ (config.infoBoxCumulative() ? "<br>Raid split: " + TfaRaid.time(split.cumulative) : "");
+			+ (config.infoBoxCumulative() ? "<br>Raid split: " + TfaRaid.time(split.cumulative) : "")
+			+ (comparison.isEmpty() ? "" : "<br>vs scale " + raid.personalBest.scale + " PB: " + comparison);
 	}
 
 	private static BufferedImage image(String room)

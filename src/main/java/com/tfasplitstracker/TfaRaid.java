@@ -14,6 +14,10 @@ final class TfaRaid
 	long total = -1;
 	String status = "In progress";
 	int teamSize;
+	int observedTeamSize;
+	boolean personalBestSelected;
+	int personalBestScale;
+	TfaPersonalBest personalBest;
 	List<String> members = new ArrayList<>();
 	List<Split> splits = new ArrayList<>();
 
@@ -26,6 +30,11 @@ final class TfaRaid
 		copy.total = total;
 		copy.status = status;
 		copy.teamSize = teamSize;
+		copy.observedTeamSize = observedTeamSize;
+		// The PB snapshot is immutable after selection and survives history edits.
+		copy.personalBestSelected = personalBestSelected;
+		copy.personalBestScale = personalBestScale;
+		copy.personalBest = personalBest;
 		copy.members.addAll(members);
 		for (Split split : splits)
 		{
@@ -34,15 +43,36 @@ final class TfaRaid
 			cloned.started = split.started;
 			cloned.duration = split.duration;
 			cloned.cumulative = split.cumulative;
+			for (Phase phase : split.phases)
+			{
+				Phase clonedPhase = new Phase();
+				clonedPhase.number = phase.number;
+				clonedPhase.duration = phase.duration;
+				clonedPhase.cumulative = phase.cumulative;
+				cloned.phases.add(clonedPhase);
+			}
 			copy.splits.add(cloned);
 		}
 		return copy;
+	}
+
+	int scale()
+	{
+		return teamSize > 0 ? teamSize : observedTeamSize;
 	}
 
 	static final class Split
 	{
 		String room;
 		long started;
+		long duration = -1;
+		long cumulative = -1;
+		List<Phase> phases = new ArrayList<>();
+	}
+
+	static final class Phase
+	{
+		int number;
 		long duration = -1;
 		long cumulative = -1;
 	}

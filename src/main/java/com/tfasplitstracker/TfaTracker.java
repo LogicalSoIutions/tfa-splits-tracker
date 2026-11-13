@@ -200,6 +200,7 @@ final class TfaTracker
 			raid.updated = timestamp;
 			if (room.equals("Ocellus"))
 			{
+				TfaOcellus.finish(result);
 				raid.status = "Completed";
 			}
 		}
@@ -233,6 +234,7 @@ final class TfaTracker
 				raid.updated = timestamp;
 			}
 		}
+		if (!raids.isEmpty()) { TfaPersonalBest.select(raids.get(0), raids); }
 		return true;
 	}
 
@@ -257,14 +259,23 @@ final class TfaTracker
 			return false;
 		}
 		boolean changed = false;
+		Set<String> visible = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 		for (String raw : names)
 		{
 			String name = raw == null ? "" : raw.replaceAll("<[^>]*>", "").replace('\u00a0', ' ').trim();
+			if (!name.isEmpty()) { visible.add(name); }
 			if (!name.isEmpty() && raid.members.stream().noneMatch(n -> n.equalsIgnoreCase(name)))
 			{
 				raid.members.add(name);
 				changed = true;
 			}
+		}
+		// A partial refresh or a departing member must not shrink the raid's scale.
+		if (visible.size() > raid.observedTeamSize)
+		{
+			raid.observedTeamSize = visible.size();
+			TfaPersonalBest.select(raid, raids);
+			changed = true;
 		}
 		return changed;
 	}

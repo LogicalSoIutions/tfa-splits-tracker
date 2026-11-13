@@ -10,34 +10,37 @@ public interface TfaSplitsTrackerConfig extends Config
 {
 	String GROUP = "tfasplitstracker";
 
-	@ConfigSection(name = "Chat messages", description = "Timing messages in your local chatbox", position = 0)
+	@ConfigSection(name = "Chat messages", description = "Choose which timings appear in your local chatbox", position = 0)
 	String CHAT = "chat";
-	@ConfigSection(name = "Splits overlay", description = "Movable raid timing panel", position = 1)
-	String OVERLAY = "overlay";
-	@ConfigSection(name = "Infoboxes", description = "Completed room timing infoboxes", position = 2)
+	@ConfigSection(name = "Room infoboxes", description = "Small completed-room timers beside the game view", position = 1)
 	String INFOBOX = "infobox";
+	@ConfigSection(name = "Timing overlay", description = "Optional room and raid timers, without PB comparisons", position = 2)
+	String OVERLAY = "overlay";
 
-	@ConfigItem(keyName = "chatSplits", name = "Splits in chat", description = "Print each completed room's duration and cumulative split locally", section = CHAT, position = 0)
+	@ConfigItem(keyName = "chatSplits", name = "Show room times", description = "Print each completed room's duration and cumulative split locally", section = CHAT, position = 0)
 	default boolean chatSplits() { return true; }
-	@ConfigItem(keyName = "chatTotal", name = "Raid time in chat", description = "Print the total raid time on completion", section = CHAT, position = 1)
+	@ConfigItem(keyName = "chatTotal", name = "Show raid total", description = "Print the total raid time on completion", section = CHAT, position = 1)
 	default boolean chatTotal() { return true; }
 
-	@ConfigItem(keyName = "showOverlay", name = "Splits on overlay", description = "Show a movable timing panel during raids", section = OVERLAY, position = 0)
-	default boolean showOverlay() { return true; }
-	@ConfigItem(keyName = "overlayLiveTimers", name = "Live raid clock", description = "Show the game's raid clock and the current room", section = OVERLAY, position = 1)
-	default boolean overlayLiveTimers() { return true; }
-	@ConfigItem(keyName = "overlayCumulative", name = "Cumulative splits", description = "Show cumulative raid splits alongside room durations", section = OVERLAY, position = 2)
-	default boolean overlayCumulative() { return true; }
-	@ConfigItem(keyName = "keepOverlayAfterRaid", name = "Keep after raid", description = "Keep the latest raid's timings visible after leaving the raid while logged in", section = OVERLAY, position = 3)
-	default boolean keepOverlayAfterRaid() { return false; }
+	@ConfigItem(keyName = "chatPersonalBest", name = "Include PB comparison", description = "Append PB differences at the same party scale. Sidebar comparisons are always on.", section = CHAT, position = 2)
+	default boolean chatPersonalBest() { return false; }
+	@ConfigItem(keyName = "chatOcellusPhases", name = "Show Ocellus phases", description = "Print each completed Ocellus phase in local chat", section = CHAT, position = 3)
+	default boolean chatOcellusPhases() { return false; }
 
-	@ConfigItem(keyName = "showInfoBoxes", name = "Infobox info", description = "Show one timing infobox per completed room in the latest raid", section = INFOBOX, position = 0)
+	@ConfigItem(keyName = "showOverlay", name = "Show overlay", description = "Show room times and the raid clock. No PB comparisons.", section = OVERLAY, position = 0)
+	default boolean showOverlay() { return false; }
+	@ConfigItem(keyName = "overlayCumulative", name = "Include raid splits", description = "Show cumulative raid time beside each completed room", section = OVERLAY, position = 1)
+	default boolean overlayCumulative() { return false; }
+	@ConfigItem(keyName = "overlayOcellusPhases", name = "Show Ocellus phases", description = "Include the four Ocellus phase times in the overlay", section = OVERLAY, position = 2)
+	default boolean overlayOcellusPhases() { return true; }
+
+	@ConfigItem(keyName = "showInfoBoxes", name = "Show infoboxes", description = "Show one timing infobox per completed room in the latest raid", section = INFOBOX, position = 0)
 	default boolean showInfoBoxes() { return true; }
-	@ConfigItem(keyName = "infoBoxText", name = "Infobox text", description = "Choose which time appears on each room infobox (whole seconds)", section = INFOBOX, position = 1)
+	@ConfigItem(keyName = "infoBoxText", name = "Timer text", description = "Choose which time appears on each room infobox (whole seconds)", section = INFOBOX, position = 1)
 	default InfoBoxText infoBoxText() { return InfoBoxText.ROOM_TIME; }
-	@ConfigItem(keyName = "infoBoxTooltip", name = "Infobox tooltips", description = "Show the room name and precise room time on hover", section = INFOBOX, position = 2)
+	@ConfigItem(keyName = "infoBoxTooltip", name = "Show tooltips", description = "Show precise room times and recorded PB comparisons on hover", section = INFOBOX, position = 2)
 	default boolean infoBoxTooltip() { return true; }
-	@ConfigItem(keyName = "infoBoxCumulative", name = "Cumulative split in tooltip", description = "Include the cumulative raid split in each infobox tooltip", section = INFOBOX, position = 3)
+	@ConfigItem(keyName = "infoBoxCumulative", name = "Include raid split", description = "Include the cumulative raid split in each infobox tooltip", section = INFOBOX, position = 3)
 	default boolean infoBoxCumulative() { return true; }
 
 	enum InfoBoxText

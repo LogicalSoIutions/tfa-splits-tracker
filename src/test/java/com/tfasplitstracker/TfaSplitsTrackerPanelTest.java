@@ -26,6 +26,90 @@ import static org.junit.Assert.*;
 public class TfaSplitsTrackerPanelTest
 {
 	@Test
+	public void ocellusPhasesAppearInLiveAndExpandedHistoryAtSidebarWidth() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			TfaTracker data = TfaOcellusTest.completedFight();
+			TfaRaid raid = data.raids.get(0);
+			raid.personalBest = new TfaPersonalBest();
+			raid.personalBest.scale = 3;
+			raid.personalBest.total = 550000;
+			raid.personalBest.splits.addAll(raid.copy().splits);
+			raid.personalBest.splits.get(0).phases.get(0).duration = 65000;
+			raid.status = "In progress";
+			TfaSplitsTrackerPanel panel = new TfaSplitsTrackerPanel();
+			try
+			{
+				panel.update(data, true, new TfaLiveState(true, "Ocellus", 540000));
+				assertTrue(labelTexts(panel).contains("P1 Vines"));
+				assertTrue(labelTexts(panel).contains("P4 Prayer switches"));
+				assertTrue(labelTexts(panel).contains("Phase vs PB"));
+				assertTrue(labelTexts(panel).contains("-0:05.00"));
+				raid.status = "Completed";
+				panel.update(data, true, new TfaLiveState(true, "Completed", 540000));
+				assertFalse(labelTexts(panel).contains("P1 Vines"));
+				String date = java.time.format.DateTimeFormatter.ofPattern("MMM d, HH:mm")
+					.withZone(ZoneId.systemDefault()).format(java.time.Instant.ofEpochMilli(raid.started));
+				findButton(panel, "\u25b8 " + date).doClick();
+				assertTrue(labelTexts(panel).contains("P1 Vines"));
+				assertTrue(labelTexts(panel).contains("0:30.00"));
+				panel.setSize(225, panel.getPreferredSize().height);
+				layout(panel);
+				checkBounds(panel);
+				BufferedImage image = new BufferedImage(225, panel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+				Graphics2D graphics = image.createGraphics();
+				panel.printAll(graphics);
+				graphics.dispose();
+				try { ImageIO.write(image, "png", new File("build/tfa-ocellus-panel.png")); }
+				catch (java.io.IOException ex) { throw new RuntimeException(ex); }
+				raid.personalBest.splits.get(0).phases.clear();
+				panel.update(data, true, new TfaLiveState(true, "Completed", 540000));
+				assertFalse(labelTexts(panel).contains("Phase vs PB"));
+				assertTrue(labelTexts(panel).contains("P1 Vines"));
+			}
+			finally { panel.stop(); }
+		});
+	}
+
+	@Test
+	public void personalBestDeltasAlwaysAppearAndFitNarrowSidebar() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			TfaTracker data = new TfaTracker();
+			data.raids.add(TfaPersonalBestTest.saved(3, 10000));
+			data.accept("Challenge started: Archive Guardian.", 100000);
+			data.party(Arrays.asList("This Whip", "LogicalHash", "Godly"));
+			data.accept("Challenge complete: Archive Guardian. Duration: 0:09.00. Total: 0:11.00", 111000);
+			data.accept("Challenge complete: Ezekiel. Duration: 0:15.00. Total: 0:25.00", 125000);
+			TfaSplitsTrackerPanel panel = new TfaSplitsTrackerPanel();
+			try
+			{
+				panel.update(data, true, new TfaLiveState(true, "In progress", 25000));
+				assertTrue(labelTexts(panel).contains("Scale 3 PB: 1:00.00"));
+				assertTrue(labelTexts(panel).contains("Room vs PB"));
+				assertTrue(labelTexts(panel).contains("-0:01.00"));
+				assertTrue(labelTexts(panel).contains("+0:01.00"));
+				assertTrue(labelTexts(panel).contains("PB stage used Bork"));
+				panel.setSize(225, panel.getPreferredSize().height);
+				layout(panel);
+				checkBounds(panel);
+				BufferedImage image = new BufferedImage(225, panel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+				Graphics2D graphics = image.createGraphics();
+				panel.printAll(graphics);
+				graphics.dispose();
+				try { ImageIO.write(image, "png", new File("build/tfa-pb-panel.png")); }
+				catch (java.io.IOException ex) { throw new RuntimeException(ex); }
+				panel.update(data, true, new TfaLiveState(true, "In progress", 26000));
+				assertTrue(labelTexts(panel).contains("Room vs PB"));
+				assertTrue(labelTexts(panel).contains("Raid vs PB"));
+			}
+			finally { panel.stop(); }
+		});
+	}
+
+	@Test
 	public void lobbyClearsLiveCardAndClockFollowsHudSnapshot() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
@@ -39,6 +123,18 @@ public class TfaSplitsTrackerPanelTest
 				assertTrue(labelTexts(panel).contains("1:23.40"));
 				panel.updateLiveState(new TfaLiveState(true, "In progress", 84600));
 				assertTrue(labelTexts(panel).contains("1:24.60"));
+				data.accept("Challenge complete: Archive Guardian. Duration: 1:00.00. Total: 1:02.40", 162000);
+				panel.update(data, true, new TfaLiveState(true, "Between rooms", -1));
+				assertTrue(labelTexts(panel).contains("LIVE RAID"));
+				assertTrue(labelTexts(panel).contains("Archive Guardian"));
+				assertTrue(labelTexts(panel).contains("1:00.00"));
+				assertTrue(labelTexts(panel).contains("1:02.40"));
+				assertTrue(labelTexts(panel).contains("Between rooms"));
+				assertEquals(1, findComponent(panel, javax.swing.JProgressBar.class).getValue());
+				assertFalse(labelTexts(panel).contains("Waiting for challenge start"));
+				panel.updateLiveState(new TfaLiveState(true, "Loading raid", -1));
+				assertTrue(labelTexts(panel).contains("LIVE RAID"));
+				assertTrue(labelTexts(panel).contains("1:02.40"));
 				panel.updateLiveState(new TfaLiveState(false, "No Party", -1));
 				assertFalse(labelTexts(panel).contains("LIVE RAID"));
 				assertTrue(labelTexts(panel).contains("No Party"));
