@@ -18,5 +18,4 @@ History is saved separately for each RuneScape profile and kept between sessions
 
 ## Screenshots
 
-<img width="241" alt="Raid history and room splits" src="https://github.com/user-attachments/assets/37b3cfff-2354-44a7-89e2-0065da818636" />
-<img width="237" alt="Raid tracker panel" src="https://github.com/user-attachments/assets/5102e76d-8407-40f3-848f-395a9c1b8ea4" />
+<img width="230" height="561" alt="image" src="https://github.com/user-attachments/assets/eff47d59-5828-42cf-9999-33b31d7b036d" />
