@@ -81,9 +81,9 @@ final class TfaRaidComparisonPanel extends JPanel
 
 		JPanel picker = new JPanel(new BorderLayout(0, 8));
 		picker.setOpaque(false);
-		search.putClientProperty("JTextField.placeholderText", "Find a date, player or raid status...");
+		search.putClientProperty("JTextField.placeholderText", "Date, player, status or time...");
 		search.setName("comparisonRaidSearch");
-		search.setToolTipText("Filter saved raids by date, party member, status or team size");
+		search.setToolTipText("Filter saved raids by date, party member, status or team size. " + TfaRaidSearch.TIME_HELP);
 		search.setBackground(CARD);
 		search.setForeground(TEXT);
 		search.setCaretColor(TEXT);
@@ -254,7 +254,7 @@ final class TfaRaidComparisonPanel extends JPanel
 		String query = search.getText().trim().toLowerCase(Locale.ROOT);
 		int size = teamSize.getSelectedIndex();
 		filtered = raids.stream().filter(r -> size == 0 || (r.teamSize > 0 ? r.teamSize : r.members.size()) == size)
-			.filter(r -> details(r).toLowerCase(Locale.ROOT).contains(query)).collect(Collectors.toList());
+			.filter(r -> TfaRaidSearch.matches(r, query, details(r))).collect(Collectors.toList());
 		selectionModel.fireTableDataChanged();
 		updatePersonalBestButton();
 	}

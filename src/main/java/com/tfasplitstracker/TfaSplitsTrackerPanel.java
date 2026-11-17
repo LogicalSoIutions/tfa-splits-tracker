@@ -134,9 +134,9 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		sizes.addActionListener(e -> rebuildHistory());
 		add(sizes);
 		add(Box.createVerticalStrut(7));
-		add(label("Search player or status", 10, MUTED));
+		add(label("Search player, status or time", 10, MUTED));
 		add(Box.createVerticalStrut(4));
-		search.setToolTipText("Filter by party member or raid status");
+		search.setToolTipText("Filter by party member or raid status. " + TfaRaidSearch.TIME_HELP);
 		search.setAlignmentX(LEFT_ALIGNMENT);
 		search.setBackground(CARD);
 		search.setForeground(TEXT);
@@ -144,7 +144,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
 		search.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER),
 			BorderFactory.createEmptyBorder(4, 7, 4, 7)));
-		search.putClientProperty("JTextField.placeholderText", "Search player or status...");
+		search.putClientProperty("JTextField.placeholderText", "Player, status or 12:34...");
 		search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 		search.setPreferredSize(new Dimension(190, 28));
 		search.getDocument().addDocumentListener(new DocumentListener()
@@ -320,7 +320,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		Map<LocalDate, List<TfaRaid>> days = data.raids.stream()
 			.filter(raid -> !raid.active())
 			.filter(raid -> selectedSize == 0 || (raid.teamSize > 0 ? raid.teamSize : raid.members.size()) == selectedSize)
-			.filter(raid -> query.isEmpty() || (raid.status + " " + String.join(" ", raid.members)).toLowerCase(Locale.ROOT).contains(query))
+			.filter(raid -> TfaRaidSearch.matches(raid, query, raid.status + " " + String.join(" ", raid.members)))
 			.sorted(Comparator.comparingLong((TfaRaid raid) -> raid.started).reversed())
 			.collect(Collectors.groupingBy(raid -> Instant.ofEpochMilli(raid.started).atZone(ZoneId.systemDefault()).toLocalDate(),
 				() -> new TreeMap<LocalDate, List<TfaRaid>>(Comparator.reverseOrder()), Collectors.toList()));
