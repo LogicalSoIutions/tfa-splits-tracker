@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JTable;
 import javax.swing.JLabel;
@@ -188,6 +189,95 @@ public class TfaRaidComparisonPanelTest
 		{
 			throw new AssertionError(ex);
 		}
+	}
+
+	@Test
+	public void comparePersonalBestUsesSelectedTeamSizeAcrossAllSavedRaids() throws Exception
+	{
+		TfaRaid best = recordings().get(0);
+		best.teamSize = 0;
+		best.members.clear();
+		best.members.addAll(Arrays.asList("PB raider", "Partner"));
+		List<TfaRaid> raids = new ArrayList<>();
+		raids.add(best);
+		for (int i = 1; i <= 7; i++)
+		{
+			TfaRaid raid = best.copy();
+			raid.id = "candidate-" + i;
+			raid.started += i;
+			raid.teamSize = 2;
+			raid.total += 1000;
+			if (i == 3) { raid.teamSize = 3; raid.total = best.total; }
+			if (i == 4) { raid.status = "Failed"; raid.total = 1; }
+			if (i == 5) { raid.splits.clear(); raid.total = 1; }
+			if (i == 6) { raid.total = -1; }
+			if (i == 7) { raid.splits.get(0).cumulative = -1; raid.total = 1; }
+			raids.add(raid);
+		}
+		SwingUtilities.invokeAndWait(() ->
+		{
+			TfaRaidComparisonPanel panel = new TfaRaidComparisonPanel(raids);
+			raids.forEach(r -> panel.selectRaid(r.id, false));
+			panel.selectRaid(raids.get(1).id, true);
+			JComboBox<?> sizes = (JComboBox<?>) findByName(panel, "comparisonTeamSize");
+			JButton button = (JButton) findByName(panel, "comparisonPersonalBest");
+			assertFalse(button.isVisible());
+			sizes.setSelectedIndex(2);
+			assertTrue(button.isVisible());
+			assertTrue(button.isEnabled());
+			((JTextField) findByName(panel, "comparisonRaidSearch")).setText("No matching raider");
+			assertEquals(0, ((JTable) findByName(panel, "comparisonRaidList")).getRowCount());
+			button.doClick();
+			assertEquals(3, panel.comparisonModel.getColumnCount());
+			assertTrue(panel.comparisonModel.isBaseline(2));
+			assertEquals(Long.valueOf(1000), panel.comparisonModel.delta(row(panel.comparisonModel, "Total raid time"), 1));
+			button.doClick();
+			assertEquals("Already selected PB is not added twice", 3, panel.comparisonModel.getColumnCount());
+			sizes.setSelectedIndex(3);
+			button.doClick();
+			assertTrue(panel.comparisonModel.isBaseline(3));
+			sizes.setSelectedIndex(1);
+			assertFalse(button.isEnabled());
+			sizes.setSelectedIndex(2);
+			panel.setRaids(Collections.emptyList());
+			assertFalse(button.isEnabled());
+		});
+	}
+
+	@Test
+	public void comparePersonalBestRespectsSelectionLimitAndRefreshesAfterDeletion() throws Exception
+	{
+		TfaRaid best = recordings().get(0);
+		best.teamSize = 2;
+		List<TfaRaid> raids = new ArrayList<>();
+		raids.add(best);
+		for (int i = 1; i <= 5; i++)
+		{
+			TfaRaid raid = best.copy();
+			raid.id = "slower-" + i;
+			raid.started += i;
+			raid.total += i * 1000;
+			raids.add(raid);
+		}
+		SwingUtilities.invokeAndWait(() ->
+		{
+			TfaRaidComparisonPanel panel = new TfaRaidComparisonPanel(raids);
+			raids.forEach(r -> panel.selectRaid(r.id, false));
+			for (int i = 1; i <= 5; i++) { panel.selectRaid(raids.get(i).id, true); }
+			((JComboBox<?>) findByName(panel, "comparisonTeamSize")).setSelectedIndex(2);
+			JButton button = (JButton) findByName(panel, "comparisonPersonalBest");
+			assertFalse(button.isEnabled());
+			panel.selectRaid(raids.get(5).id, false);
+			assertTrue(button.isEnabled());
+			button.doClick();
+			assertEquals(6, panel.comparisonModel.getColumnCount());
+			assertTrue(panel.comparisonModel.isBaseline(5));
+			assertTrue("PB remains usable when already among five selections", button.isEnabled());
+			panel.setRaids(raids.subList(1, raids.size()));
+			button.doClick();
+			assertEquals(5, panel.comparisonModel.getColumnCount());
+			assertTrue("Next fastest surviving raid becomes baseline", panel.comparisonModel.isBaseline(1));
+		});
 	}
 
 	private static Component findByName(Container container, String name)

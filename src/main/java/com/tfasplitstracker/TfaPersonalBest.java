@@ -30,7 +30,7 @@ final class TfaPersonalBest
 			});
 	}
 
-	private static boolean valid(TfaRaid raid)
+	static boolean valid(TfaRaid raid)
 	{
 		if (!raid.completeSplits() || raid.total < 0) { return false; }
 		long previous = 0;

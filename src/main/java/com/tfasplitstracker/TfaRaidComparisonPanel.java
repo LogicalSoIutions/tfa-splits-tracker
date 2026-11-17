@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -54,6 +55,7 @@ final class TfaRaidComparisonPanel extends JPanel
 	private final JComboBox<String> teamSize = new JComboBox<>(new String[]{"All team sizes", "Solo", "2 players", "3 players", "4 players", "5 players", "6 players", "7 players", "8 players"});
 	private final JLabel count = new JLabel();
 	private final JComboBox<Choice> baseline = new JComboBox<>();
+	private final JButton comparePersonalBest = new JButton("Compare to P.B.");
 	private final SelectionModel selectionModel = new SelectionModel();
 	private final JTable selection = new JTable(selectionModel);
 	final ComparisonModel comparisonModel = new ComparisonModel();
@@ -141,6 +143,19 @@ final class TfaRaidComparisonPanel extends JPanel
 		baseline.setForeground(TEXT);
 		baseline.setFont(UI_FONT);
 		controls.add(baseline, BorderLayout.CENTER);
+		comparePersonalBest.setName("comparisonPersonalBest");
+		comparePersonalBest.setFont(UI_FONT);
+		comparePersonalBest.setBackground(CARD);
+		comparePersonalBest.setForeground(TEXT);
+		comparePersonalBest.addActionListener(e ->
+		{
+			TfaRaid best = personalBest();
+			if (best != null && (selected.contains(best.id) || selectRaid(best.id, true)))
+			{
+				setBaseline(best.id);
+			}
+		});
+		controls.add(comparePersonalBest, BorderLayout.EAST);
 		results.add(controls, BorderLayout.NORTH);
 		styleTable(comparison);
 		comparison.setName("comparisonTimings");
@@ -241,6 +256,27 @@ final class TfaRaidComparisonPanel extends JPanel
 		filtered = raids.stream().filter(r -> size == 0 || (r.teamSize > 0 ? r.teamSize : r.members.size()) == size)
 			.filter(r -> details(r).toLowerCase(Locale.ROOT).contains(query)).collect(Collectors.toList());
 		selectionModel.fireTableDataChanged();
+		updatePersonalBestButton();
+	}
+
+	private TfaRaid personalBest()
+	{
+		int size = teamSize.getSelectedIndex();
+		return size == 0 ? null : raids.stream()
+			.filter(r -> (r.teamSize > 0 ? r.teamSize : r.members.size()) == size
+				&& "Completed".equals(r.status) && TfaPersonalBest.valid(r))
+			.min(Comparator.comparingLong(r -> r.total)).orElse(null);
+	}
+
+	private void updatePersonalBestButton()
+	{
+		TfaRaid best = personalBest();
+		boolean full = best != null && selected.size() >= 5 && !selected.contains(best.id);
+		comparePersonalBest.setVisible(teamSize.getSelectedIndex() > 0);
+		comparePersonalBest.setEnabled(best != null && !full);
+		comparePersonalBest.setToolTipText(best == null ? "No fully recorded completed raid for this team size"
+			: full ? "Uncheck a raid to make room for your P.B."
+			: "Compare against your " + teamSize.getSelectedItem() + " P.B.: " + TfaRaid.time(best.total));
 	}
 
 	private void rebuildComparison()
@@ -268,6 +304,7 @@ final class TfaRaidComparisonPanel extends JPanel
 			comparison.getColumnModel().getColumn(i).setPreferredWidth(i == 0 ? 175 : 235);
 		}
 		resizeTimingRows();
+		updatePersonalBestButton();
 	}
 
 	private void resizeTimingRows()
