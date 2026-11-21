@@ -10,6 +10,9 @@ Room splits, raid times, and party history for The Fractured Archive in RuneLite
 - Automatically track server-reported room splits and total raid times.
 - Track new Ocellus fights as Vines, Portals, Quadrants, and Prayer switches.
 - View live timings in the sidebar, optional timing overlay, chat messages, and infoboxes.
+- Customize the compact, transparent overlay's font, size, text color, and raid clock color
+  under **Timing overlay**. Room times align on the right; optional raid splits appear beside
+  room times, and Ocellus phases appear as indented rows. Unrecorded times show `--:--`.
 - Browse saved raid history by day, team size, party member, result, or total raid time.
 - Compare up to five raids side by side with time differences against a chosen baseline.
 - Manage saved raids and splits, with undo for your last deletion.

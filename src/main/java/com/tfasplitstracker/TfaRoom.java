@@ -10,7 +10,7 @@ enum TfaRoom
 	BORK(2, "Bork", "Bork & the Smorks", "Bork and the Smorks"),
 	MOIA(3, "Moia", "Moia"),
 	DREADNOTH(3, "Dreadnoth the Jellied", "Dreadnoth the Jellied"),
-	DAGONHAI(4, "Dagon'hai Trio", "Dagon'hai Elder & monks", "Dagon'hai Elder and monks", "Dagon'hai Elder"),
+	DAGONHAI(4, "Dagon'hai Trio", "Dagon'hai Elder & monks", "The Dagon'hai", "Dagon'hai Elder and monks", "Dagon'hai Elder"),
 	XARTH(4, "Xarth", "Xarth"),
 	OCELLUS(5, "Ocellus", "Ocellus");
 

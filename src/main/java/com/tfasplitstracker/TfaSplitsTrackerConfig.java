@@ -1,9 +1,11 @@
 package com.tfasplitstracker;
 
+import java.awt.Color;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.Range;
 
 @ConfigGroup(TfaSplitsTrackerConfig.GROUP)
 public interface TfaSplitsTrackerConfig extends Config
@@ -33,6 +35,15 @@ public interface TfaSplitsTrackerConfig extends Config
 	default boolean overlayCumulative() { return false; }
 	@ConfigItem(keyName = "overlayOcellusPhases", name = "Show Ocellus phases", description = "Include the four Ocellus phase times in the overlay", section = OVERLAY, position = 2)
 	default boolean overlayOcellusPhases() { return true; }
+	@ConfigItem(keyName = "overlayFont", name = "Font", description = "Choose the overlay typeface", section = OVERLAY, position = 3)
+	default OverlayFont overlayFont() { return OverlayFont.RUNESCAPE_BOLD; }
+	@Range(min = 8, max = 36)
+	@ConfigItem(keyName = "overlayFontSize", name = "Font size", description = "Overlay font size in pixels (8–36)", section = OVERLAY, position = 4)
+	default int overlayFontSize() { return 12; }
+	@ConfigItem(keyName = "overlayTextColor", name = "Text color", description = "Color of room labels, split times, and Ocellus phases", section = OVERLAY, position = 5)
+	default Color overlayTextColor() { return Color.WHITE; }
+	@ConfigItem(keyName = "overlayClockColor", name = "Raid clock color", description = "Color of the raid time or completed raid total", section = OVERLAY, position = 6)
+	default Color overlayClockColor() { return Color.GREEN; }
 
 	@ConfigItem(keyName = "showInfoBoxes", name = "Show infoboxes", description = "Show one timing infobox per completed room in the latest raid", section = INFOBOX, position = 0)
 	default boolean showInfoBoxes() { return true; }
@@ -42,6 +53,15 @@ public interface TfaSplitsTrackerConfig extends Config
 	default boolean infoBoxTooltip() { return true; }
 	@ConfigItem(keyName = "infoBoxCumulative", name = "Include raid split", description = "Include the cumulative raid split in each infobox tooltip", section = INFOBOX, position = 3)
 	default boolean infoBoxCumulative() { return true; }
+
+	enum OverlayFont
+	{
+		RUNESCAPE("RuneScape"), RUNESCAPE_BOLD("RuneScape Bold"),
+		ARIAL("Arial"), SANS_SERIF("Sans serif"), SERIF("Serif"), MONOSPACED("Monospaced");
+		private final String label;
+		OverlayFont(String label) { this.label = label; }
+		@Override public String toString() { return label; }
+	}
 
 	enum InfoBoxText
 	{
