@@ -21,6 +21,10 @@ Search by total raid time in both history and Compare Raids: `12:34` matches tha
 range. Limits also support `<=`, `>` and `>=`, with optional hundredths (`12:34.56`).
 Time searches combine with the team-size filter and keep selected comparisons in place.
 
+Check **Hide Failed/Abandoned Raids** in history or Compare Raids to show only completed
+raids. This also hides left and interrupted attempts, keeps saved records, and works
+with search and team-size filters. Selected comparisons stay selected.
+
 ## Screenshots
 
 <img width="230" height="561" alt="image" src="https://github.com/user-attachments/assets/eff47d59-5828-42cf-9999-33b31d7b036d" />

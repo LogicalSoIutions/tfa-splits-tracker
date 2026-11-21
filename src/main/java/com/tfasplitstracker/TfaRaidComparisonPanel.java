@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -62,6 +63,7 @@ final class TfaRaidComparisonPanel extends JPanel
 	private final JTable comparison = new JTable(comparisonModel);
 	private boolean updating;
 	private boolean initialized;
+	private final JCheckBox hideUnfinished = new JCheckBox("Hide Failed/Abandoned Raids");
 
 	TfaRaidComparisonPanel(List<TfaRaid> savedRaids)
 	{
@@ -99,6 +101,13 @@ final class TfaRaidComparisonPanel extends JPanel
 		teamSize.setToolTipText("Filter the saved raid list by team size; selected comparisons stay selected");
 		teamSize.addActionListener(e -> filter());
 		filters.add(teamSize, BorderLayout.NORTH);
+		hideUnfinished.setName("comparisonHideUnfinished");
+		hideUnfinished.setOpaque(false);
+		hideUnfinished.setForeground(TEXT);
+		hideUnfinished.setFont(SMALL_FONT);
+		hideUnfinished.setToolTipText("Show only completed raids; also hides left and interrupted attempts. Selected comparisons stay selected.");
+		hideUnfinished.addActionListener(e -> filter());
+		filters.add(hideUnfinished, BorderLayout.CENTER);
 		filters.add(search, BorderLayout.SOUTH);
 		picker.add(filters, BorderLayout.NORTH);
 		styleTable(selection);
@@ -254,6 +263,7 @@ final class TfaRaidComparisonPanel extends JPanel
 		String query = search.getText().trim().toLowerCase(Locale.ROOT);
 		int size = teamSize.getSelectedIndex();
 		filtered = raids.stream().filter(r -> size == 0 || (r.teamSize > 0 ? r.teamSize : r.members.size()) == size)
+			.filter(r -> !hideUnfinished.isSelected() || "Completed".equals(r.status))
 			.filter(r -> TfaRaidSearch.matches(r, query, details(r))).collect(Collectors.toList());
 		selectionModel.fireTableDataChanged();
 		updatePersonalBestButton();

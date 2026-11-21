@@ -24,6 +24,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -61,6 +62,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 	private final JLabel notice = label("", 11, TEXT);
 	private final JComboBox<String> sizes = new JComboBox<>(new String[]{"All team sizes", "Solo", "2 players", "3 players", "4 players", "5 players", "6 players", "7 players", "8 players"});
 	private final JTextField search = new JTextField();
+	private final JCheckBox hideUnfinished = new JCheckBox("Hide Failed/Abandoned Raids");
 	private final Set<String> expanded = new HashSet<>();
 	private final Set<LocalDate> collapsedDays = new HashSet<>();
 	private TfaTracker data = new TfaTracker();
@@ -133,6 +135,14 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		sizes.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 		sizes.addActionListener(e -> rebuildHistory());
 		add(sizes);
+		add(Box.createVerticalStrut(7));
+		hideUnfinished.setAlignmentX(LEFT_ALIGNMENT);
+		hideUnfinished.setOpaque(false);
+		hideUnfinished.setForeground(TEXT);
+		hideUnfinished.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+		hideUnfinished.setToolTipText("Show only completed raids; also hides left and interrupted attempts. Saved raids are kept.");
+		hideUnfinished.addActionListener(e -> rebuildHistory());
+		add(hideUnfinished);
 		add(Box.createVerticalStrut(7));
 		add(label("Search player, status or time", 10, MUTED));
 		add(Box.createVerticalStrut(4));
@@ -319,6 +329,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		int selectedSize = sizes.getSelectedIndex();
 		Map<LocalDate, List<TfaRaid>> days = data.raids.stream()
 			.filter(raid -> !raid.active())
+			.filter(raid -> !hideUnfinished.isSelected() || "Completed".equals(raid.status))
 			.filter(raid -> selectedSize == 0 || (raid.teamSize > 0 ? raid.teamSize : raid.members.size()) == selectedSize)
 			.filter(raid -> TfaRaidSearch.matches(raid, query, raid.status + " " + String.join(" ", raid.members)))
 			.sorted(Comparator.comparingLong((TfaRaid raid) -> raid.started).reversed())
