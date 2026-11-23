@@ -2,8 +2,14 @@
 
 Room splits, raid times, and party history for The Fractured Archive in RuneLite.
 
-[![Active Installs](https://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/installs/plugin/tfa-splits-tracker)](https://runelite.net/plugin-hub/show/tfa-splits-tracker)
+[![Total Installs](https://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/installs/plugin/tfa-splits-tracker)](https://runelite.net/plugin-hub/show/tfa-splits-tracker)
 [![Plugin Rank](https://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/rank/plugin/tfa-splits-tracker)](https://runelite.net/plugin-hub/show/tfa-splits-tracker)
+[![Discord Support](https://img.shields.io/badge/Discord-Plugin%20Support-5865F2?logo=discord&logoColor=white)](https://discord.gg/XGwSWp2WtB)
+
+## Installation
+
+Open RuneLite's **Plugin Hub**, search for **TFA Splits Tracker**, and install the plugin.
+You can also view its [Plugin Hub listing](https://runelite.net/plugin-hub/show/tfa-splits-tracker).
 
 ## Features
 
@@ -31,3 +37,8 @@ with search and team-size filters. Selected comparisons stay selected.
 ## Screenshots
 
 <img width="230" height="561" alt="image" src="https://github.com/user-attachments/assets/eff47d59-5828-42cf-9999-33b31d7b036d" />
+
+## Support
+
+Need help, found a bug, or have a feature request? Join the [plugin support Discord](https://discord.gg/XGwSWp2WtB).
+Use **bug-reports**, **feature-requests**, or **support-tickets**, and select your plugin from the dropdown when submitting. Include any relevant details or screenshots.

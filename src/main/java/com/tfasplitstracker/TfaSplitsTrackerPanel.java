@@ -330,7 +330,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		Map<LocalDate, List<TfaRaid>> days = data.raids.stream()
 			.filter(raid -> !raid.active())
 			.filter(raid -> !hideUnfinished.isSelected() || "Completed".equals(raid.status))
-			.filter(raid -> selectedSize == 0 || (raid.teamSize > 0 ? raid.teamSize : raid.members.size()) == selectedSize)
+			.filter(raid -> selectedSize == 0 || raid.displayTeamSize() == selectedSize)
 			.filter(raid -> TfaRaidSearch.matches(raid, query, raid.status + " " + String.join(" ", raid.members)))
 			.sorted(Comparator.comparingLong((TfaRaid raid) -> raid.started).reversed())
 			.collect(Collectors.groupingBy(raid -> Instant.ofEpochMilli(raid.started).atZone(ZoneId.systemDefault()).toLocalDate(),
@@ -387,7 +387,7 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 
 	private JPanel historyCard(TfaRaid raid)
 	{
-		int team = raid.teamSize > 0 ? raid.teamSize : raid.members.size();
+		int team = raid.displayTeamSize();
 		JPanel card = card();
 		boolean open = expanded.contains(raid.id);
 		JButton toggle = new JButton((open ? "\u25be " : "\u25b8 ") + DATE.format(Instant.ofEpochMilli(raid.started)));

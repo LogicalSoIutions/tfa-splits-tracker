@@ -14,7 +14,6 @@ final class TfaTracker
 	private static final Pattern START = Pattern.compile("^Challenge started: (.+)\\.$");
 	private static final Pattern SPLIT = Pattern.compile("^Challenge complete: (.+)\\. Duration: " + TIME + "\\. Total: " + TIME + ".*$");
 	private static final Pattern TOTAL = Pattern.compile("^The Fractured Archive: Total completion time: " + TIME + ".*$");
-	private static final Pattern READY = Pattern.compile("^\\d+/([1-8]) party members are now ready\\.$");
 	final List<TfaRaid> raids = new ArrayList<>();
 	// Persist the event journal as well as the records, so re-enabling cannot replay old starts.
 	final Set<String> processed = new LinkedHashSet<>();
@@ -69,6 +68,10 @@ final class TfaTracker
 		// A newly started raid must remain first so current() can find it.
 		int firstSaved = current() == null ? 0 : 1;
 		raids.add(Math.min(raids.size(), Math.max(firstSaved, deletedIndex)), deleted);
+		if (deleted.personalBestSelected)
+		{
+			TfaPersonalBest.select(deleted, raids);
+		}
 		deleted = null;
 		while (raids.size() > 200)
 		{
@@ -101,16 +104,14 @@ final class TfaTracker
 		Matcher start = START.matcher(message);
 		Matcher split = SPLIT.matcher(message);
 		Matcher total = TOTAL.matcher(message);
-		Matcher ready = READY.matcher(message);
 		TfaRoom startRoom = start.matches() ? TfaRoom.find(start.group(1)) : null;
 		TfaRoom completedRoom = split.matches() ? TfaRoom.find(split.group(1)) : null;
 		boolean isStart = startRoom != null;
 		boolean isSplit = completedRoom != null;
 		boolean isTotal = total.matches();
-		boolean isReady = ready.matches() && current() != null;
 		boolean failed = message.equals("You failed to survive the Fractured Archive.");
 		boolean abandoned = message.equals("You abandon the raid and leave the Fractured Archive.");
-		if (!isStart && !isSplit && !isTotal && !isReady && !failed && !abandoned)
+		if (!isStart && !isSplit && !isTotal && !failed && !abandoned)
 		{
 			return false;
 		}
@@ -224,15 +225,8 @@ final class TfaTracker
 		else if (current() != null)
 		{
 			TfaRaid raid = current();
-			if (isReady)
-			{
-				raid.teamSize = Integer.parseInt(ready.group(1));
-			}
-			else
-			{
-				raid.status = failed ? "Failed" : "Abandoned";
-				raid.updated = timestamp;
-			}
+			raid.status = failed ? "Failed" : "Abandoned";
+			raid.updated = timestamp;
 		}
 		if (!raids.isEmpty()) { TfaPersonalBest.select(raids.get(0), raids); }
 		return true;

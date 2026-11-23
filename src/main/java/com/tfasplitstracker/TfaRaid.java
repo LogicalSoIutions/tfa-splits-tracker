@@ -58,7 +58,13 @@ final class TfaRaid
 
 	int scale()
 	{
-		return teamSize > 0 ? teamSize : observedTeamSize;
+		return observedTeamSize > 0 ? observedTeamSize : teamSize;
+	}
+
+	int displayTeamSize()
+	{
+		int scale = scale();
+		return scale > 0 ? scale : members.size();
 	}
 
 	static final class Split

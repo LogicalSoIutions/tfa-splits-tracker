@@ -123,7 +123,7 @@ final class TfaRaidComparisonPanel extends JPanel
 			public Component getTableCellRendererComponent(JTable table, Object value, boolean selectedRow, boolean focus, int row, int column)
 			{
 				TfaRaid raid = filtered.get(row);
-				int team = raid.teamSize > 0 ? raid.teamSize : raid.members.size();
+				int team = raid.displayTeamSize();
 				text.setText(DATE.format(Instant.ofEpochMilli(raid.started)) + "\n" + raid.status + " · " + team + " players · " + TfaRaid.time(raid.total));
 				text.setFont(SMALL_FONT);
 				text.setBackground(selectedRow ? table.getSelectionBackground() : CARD);
@@ -262,7 +262,7 @@ final class TfaRaidComparisonPanel extends JPanel
 	{
 		String query = search.getText().trim().toLowerCase(Locale.ROOT);
 		int size = teamSize.getSelectedIndex();
-		filtered = raids.stream().filter(r -> size == 0 || (r.teamSize > 0 ? r.teamSize : r.members.size()) == size)
+		filtered = raids.stream().filter(r -> size == 0 || r.displayTeamSize() == size)
 			.filter(r -> !hideUnfinished.isSelected() || "Completed".equals(r.status))
 			.filter(r -> TfaRaidSearch.matches(r, query, details(r))).collect(Collectors.toList());
 		selectionModel.fireTableDataChanged();
@@ -273,7 +273,7 @@ final class TfaRaidComparisonPanel extends JPanel
 	{
 		int size = teamSize.getSelectedIndex();
 		return size == 0 ? null : raids.stream()
-			.filter(r -> (r.teamSize > 0 ? r.teamSize : r.members.size()) == size
+			.filter(r -> r.displayTeamSize() == size
 				&& "Completed".equals(r.status) && TfaPersonalBest.valid(r))
 			.min(Comparator.comparingLong(r -> r.total)).orElse(null);
 	}
@@ -328,7 +328,7 @@ final class TfaRaidComparisonPanel extends JPanel
 
 	private static String details(TfaRaid raid)
 	{
-		int team = raid.teamSize > 0 ? raid.teamSize : raid.members.size();
+		int team = raid.displayTeamSize();
 		return DATE.format(Instant.ofEpochMilli(raid.started)) + " | " + raid.status + " | " + team
 			+ " players | " + TfaRaid.time(raid.total) + " | " + String.join(", ", raid.members);
 	}
@@ -439,7 +439,7 @@ final class TfaRaidComparisonPanel extends JPanel
 			}
 			TfaRaid raid = raids.get(column - 1);
 			if (row == 0) { return raid.status; }
-			if (row == 1) { return Integer.toString(raid.teamSize > 0 ? raid.teamSize : raid.members.size()); }
+			if (row == 1) { return Integer.toString(raid.displayTeamSize()); }
 			if (row == 2) { return raid.members.isEmpty() ? "Roster not captured" : String.join(", ", raid.members); }
 			long value = time(raid, rows.get(row));
 			return value < 0 ? "—" : TfaRaid.time(value);

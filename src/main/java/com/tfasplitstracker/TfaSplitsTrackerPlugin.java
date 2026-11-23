@@ -419,6 +419,13 @@ public class TfaSplitsTrackerPlugin extends Plugin
 				if (saved != null)
 				{
 					tracker = saved;
+					for (TfaRaid raid : tracker.raids)
+					{
+						if (raid.personalBestSelected && raid.personalBestScale != raid.scale())
+						{
+							TfaPersonalBest.select(raid, tracker.raids);
+						}
+					}
 				}
 			}
 		}
