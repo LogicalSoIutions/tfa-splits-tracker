@@ -1,6 +1,5 @@
 package com.tfasplitstracker;
 
-import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -69,7 +68,13 @@ final class TfaHistoryStore
 
 	private Filepath file(String profile)
 	{
-		String name = BaseEncoding.base16().lowerCase().encode(profile.getBytes(StandardCharsets.UTF_8));
-		return directory.joinSegment(name + ".json");
+		byte[] bytes = profile.getBytes(StandardCharsets.UTF_8);
+		StringBuilder name = new StringBuilder(bytes.length * 2 + 5);
+		for (byte value : bytes)
+		{
+			name.append(Character.forDigit((value >>> 4) & 0xf, 16));
+			name.append(Character.forDigit(value & 0xf, 16));
+		}
+		return directory.joinSegment(name.append(".json").toString());
 	}
 }
