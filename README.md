@@ -23,7 +23,11 @@ You can also view its [Plugin Hub listing](https://runelite.net/plugin-hub/show/
 - Compare up to five raids side by side with time differences against a chosen baseline.
 - Manage saved raids and splits, with undo for your last deletion.
 
-History is saved separately for each RuneScape profile and kept between sessions.
+History is saved separately for each RuneScape profile in RuneLite's
+`plugin-data/tfa-splits-tracker` folder. The tracker copies existing history from RuneLite
+settings once per profile, keeps the original setting, and uses the resulting file for
+future loads and saves. **Saved raids** includes every recorded attempt, and **Completed raids**
+counts successful clears.
 
 Search by total raid time in both history and Compare Raids: `12:34` matches that second
 (including hundredths), `<13:00` finds faster raids, and `12:00-13:00` finds an inclusive

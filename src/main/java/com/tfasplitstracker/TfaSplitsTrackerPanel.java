@@ -55,7 +55,8 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 	private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.ENGLISH);
 	private final JPanel live = column();
 	private final JPanel history = column();
-	private final JLabel count = label("0", 13, TEXT);
+	private final JLabel savedCount = label("0", 13, TEXT);
+	private final JLabel completedCount = label("0", 13, TEXT);
 	private final JLabel best = label("--:--", 13, TEXT);
 	private final JLabel total = label("--:--", 26, TEXT);
 	private final JLabel roomClock = label("", 11, MUTED);
@@ -94,13 +95,15 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		header.add(label("The Fractured Archive", 11, MUTED));
 		header.setBorder(BorderFactory.createCompoundBorder(
 			BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER), BorderFactory.createEmptyBorder(0, 0, 10, 0)));
-		count.setForeground(GREEN);
+		completedCount.setForeground(GREEN);
 		best.setForeground(GOLD);
 		total.setForeground(BLUE);
 		add(header);
 		add(Box.createVerticalStrut(12));
 		JPanel stats = column();
-		stats.add(stat("Completed raids", count));
+		stats.add(stat("Saved raids", savedCount));
+		stats.add(Box.createVerticalStrut(6));
+		stats.add(stat("Completed raids", completedCount));
 		stats.add(Box.createVerticalStrut(6));
 		stats.add(stat("Best raid", best));
 		add(stats);
@@ -219,7 +222,8 @@ final class TfaSplitsTrackerPanel extends PluginPanel
 		}
 		notice.setText(storageHealthy ? "" : "History could not be loaded/saved.");
 		long completed = data.raids.stream().filter(r -> "Completed".equals(r.status)).count();
-		count.setText(Long.toString(completed));
+		savedCount.setText(Integer.toString(data.raids.size()));
+		completedCount.setText(Long.toString(completed));
 		long pb = data.raids.stream().filter(r -> "Completed".equals(r.status) && r.completeSplits())
 			.mapToLong(r -> r.total).filter(t -> t >= 0).min().orElse(-1);
 		best.setText(TfaRaid.time(pb));

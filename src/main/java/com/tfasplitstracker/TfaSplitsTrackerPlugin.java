@@ -7,6 +7,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -30,6 +31,7 @@ import net.runelite.api.events.VarClientStrChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.chat.ChatMessageManager;
@@ -70,6 +72,9 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	private NavigationButton navigation;
 	private volatile boolean running;
 	private boolean storageHealthy = true;
+	private boolean historyReadable = true;
+	private String loadedProfile;
+	private TfaHistoryStore historyStore;
 	private volatile boolean liveAvailable;
 	private volatile TfaRaid displayRaid;
 	private volatile TfaLiveState liveState = TfaLiveState.UNAVAILABLE;
@@ -85,6 +90,8 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		historyStore = new TfaHistoryStore(RuneLite.RUNELITE_DIR.toPath().resolve("plugin-data").resolve("tfa-splits-tracker"), gson);
+		loadedProfile = null;
 		running = true;
 		overlayManager.add(overlay);
 		panel = new TfaSplitsTrackerPanel(this::delete, this::undoDelete);
@@ -94,10 +101,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		{
 			if (running)
 			{
-				load();
-				reconcile(false);
-				refreshRaidState();
-				publish();
+				loadProfile();
 			}
 		});
 	}
@@ -115,7 +119,6 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		awaitingRaidStart = false;
 		toolbar.removeNavigation(navigation);
 		panel.stop();
-		// Every accepted timing and roster update has already been persisted.
 	}
 
 	@Subscribe
@@ -125,10 +128,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		{
 			if (running)
 			{
-				load();
-				reconcile(false);
-				refreshRaidState();
-				publish();
+				loadProfile();
 			}
 		});
 	}
@@ -142,7 +142,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (running && configManager.getRSProfileKey() != null && event.getType() == ChatMessageType.GAMEMESSAGE)
+		if (running && hasLoadedProfile() && event.getType() == ChatMessageType.GAMEMESSAGE)
 		{
 			// Reconcile older messages first, including when a callback was not delivered.
 			reconcile(true);
@@ -180,7 +180,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 
 	private void observeOcellus(NPC npc, boolean quadrantDestroyed, boolean boundary)
 	{
-		if (!running || configManager.getRSProfileKey() == null || client.getGameState() != GameState.LOGGED_IN
+		if (!running || !hasLoadedProfile() || client.getGameState() != GameState.LOGGED_IN
 			|| npc.getWorldView() != client.getTopLevelWorldView()
 			|| npc.getId() != TfaOcellus.VINES_NPC && npc.getId() != TfaOcellus.PORTALS_NPC
 				&& npc.getId() != TfaOcellus.QUADRANTS_NPC) { return; }
@@ -211,6 +211,8 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	{
 		if (running)
 		{
+			loadProfile();
+			if (!hasLoadedProfile()) { return; }
 			reconcile(true);
 			refreshRaidState();
 			if (captureParty())
@@ -227,7 +229,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	@Subscribe
 	public void onClientTick(ClientTick event)
 	{
-		if (!running) { return; }
+		if (!running || !hasLoadedProfile()) { return; }
 		updateLiveState(readLiveState());
 	}
 
@@ -315,7 +317,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 			// The game refreshes all eight slots in one script; wait for that refresh to finish.
 			clientThread.invokeLater(() ->
 			{
-				if (running && captureParty())
+				if (running && hasLoadedProfile() && captureParty())
 				{
 					saveAndPublish();
 				}
@@ -325,7 +327,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 
 	private void reconcile(boolean announce)
 	{
-		if (configManager.getRSProfileKey() == null || client.getGameState() != GameState.LOGGED_IN || client.getMessages() == null)
+		if (!hasLoadedProfile() || client.getGameState() != GameState.LOGGED_IN || client.getMessages() == null)
 		{
 			return;
 		}
@@ -405,43 +407,96 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		return client.getGameState() == GameState.LOGGED_IN && hud != null && !hud.isHidden();
 	}
 
-	private void load()
+	private boolean hasLoadedProfile()
+	{
+		return loadedProfile != null && loadedProfile.equals(configManager.getRSProfileKey());
+	}
+
+	private void loadProfile()
+	{
+		String profile = configManager.getRSProfileKey();
+		// Profile lookups can be temporarily unavailable. Keep the loaded account until another is known.
+		if (profile == null || profile.equals(loadedProfile))
+		{
+			return;
+		}
+		loadHistory(profile);
+		reconcile(false);
+		refreshRaidState();
+		publish();
+	}
+
+	private void loadHistory(String profile)
 	{
 		ocellus = new TfaOcellus();
+		raidSessionActive = false;
+		awaitingRaidStart = false;
+		liveState = TfaLiveState.UNAVAILABLE;
 		tracker = new TfaTracker();
+		loadedProfile = profile;
+		historyReadable = true;
 		storageHealthy = true;
+		boolean migrate = false;
 		try
 		{
-			String json = configManager.getRSProfileConfiguration(GROUP, "history");
-			if (json != null)
+			TfaTracker saved = historyStore.load(profile);
+			if (saved == null)
 			{
-				TfaTracker saved = gson.fromJson(json, TfaTracker.class);
-				if (saved != null)
+				String legacy = configManager.getConfiguration(GROUP, profile, "history");
+				if (legacy != null)
 				{
-					tracker = saved;
-					for (TfaRaid raid : tracker.raids)
-					{
-						if (raid.personalBestSelected && raid.personalBestScale != raid.scale())
-						{
-							TfaPersonalBest.select(raid, tracker.raids);
-						}
-					}
+					saved = historyStore.decode(legacy);
+					migrate = true;
 				}
 			}
+			if (saved != null)
+			{
+				for (TfaRaid raid : saved.raids)
+				{
+					if (raid.personalBestSelected && raid.personalBestScale != raid.scale())
+					{
+						TfaPersonalBest.select(raid, saved.raids);
+					}
+				}
+				tracker = saved;
+			}
 		}
-		catch (RuntimeException ex)
+		catch (IOException | RuntimeException ex)
 		{
+			historyReadable = false;
 			storageHealthy = false;
 			log.warn("Unable to read TFA splits history; preserving the stored data", ex);
+		}
+		if (migrate && historyReadable)
+		{
+			saveHistory();
+			if (storageHealthy)
+			{
+				log.info("Migrated {} TFA raid records to local history", tracker.raids.size());
+			}
+		}
+	}
+
+	private void saveHistory()
+	{
+		if (historyReadable && hasLoadedProfile())
+		{
+			try
+			{
+				historyStore.save(loadedProfile, tracker);
+				storageHealthy = true;
+			}
+			catch (IOException | RuntimeException ex)
+			{
+				storageHealthy = false;
+				log.warn("Unable to save TFA splits history", ex);
+			}
 		}
 	}
 
 	private void saveAndPublish()
 	{
-		if (storageHealthy && configManager.getRSProfileKey() != null)
-		{
-			configManager.setRSProfileConfiguration(GROUP, "history", gson.toJson(tracker));
-		}
+		saveHistory();
 		publish();
 	}
 
@@ -450,7 +505,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		String profile = configManager.getRSProfileKey();
 		clientThread.invokeLater(() ->
 		{
-			if (running && profile != null && profile.equals(configManager.getRSProfileKey()) && tracker.delete(raidId, room))
+			if (running && hasLoadedProfile() && loadedProfile.equals(profile) && tracker.delete(raidId, room))
 			{
 				saveAndPublish();
 			}
@@ -462,7 +517,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		String profile = configManager.getRSProfileKey();
 		clientThread.invokeLater(() ->
 		{
-			if (running && profile != null && profile.equals(configManager.getRSProfileKey()) && tracker.undoDelete())
+			if (running && hasLoadedProfile() && loadedProfile.equals(profile) && tracker.undoDelete())
 			{
 				saveAndPublish();
 			}

@@ -73,10 +73,6 @@ final class TfaTracker
 			TfaPersonalBest.select(deleted, raids);
 		}
 		deleted = null;
-		while (raids.size() > 200)
-		{
-			raids.remove(raids.size() - 1);
-		}
 		return true;
 	}
 
@@ -238,10 +234,6 @@ final class TfaTracker
 		raid.started = timestamp;
 		raid.updated = timestamp;
 		raids.add(0, raid);
-		while (raids.size() > 200)
-		{
-			raids.remove(raids.size() - 1);
-		}
 		return raid;
 	}
 
