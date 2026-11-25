@@ -31,7 +31,6 @@ import net.runelite.api.events.VarClientStrChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.chat.ChatMessageManager;
@@ -49,6 +48,7 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 @Slf4j
 @PluginDescriptor(
 	name = "TFA Splits Tracker",
+	internalName = "tfa-splits-tracker",
 	description = "Fractured Archive raid history, server room splits, total times and party members",
 	tags = {"tfa", "fractured", "archive", "raid", "splits", "timer", "party"},
 	enabledByDefault = true
@@ -90,7 +90,7 @@ public class TfaSplitsTrackerPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
-		historyStore = new TfaHistoryStore(RuneLite.RUNELITE_DIR.toPath().resolve("plugin-data").resolve("tfa-splits-tracker"), gson);
+		historyStore = null;
 		loadedProfile = null;
 		running = true;
 		overlayManager.add(overlay);
@@ -439,6 +439,10 @@ public class TfaSplitsTrackerPlugin extends Plugin
 		boolean migrate = false;
 		try
 		{
+			if (historyStore == null)
+			{
+				historyStore = new TfaHistoryStore(getPluginDirectory(), gson);
+			}
 			TfaTracker saved = historyStore.load(profile);
 			if (saved == null)
 			{

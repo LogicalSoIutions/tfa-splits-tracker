@@ -5,18 +5,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import net.runelite.client.util.Filepath;
 
 final class TfaHistoryStore
 {
-	private final Path directory;
+	private final Filepath directory;
 	private final Gson gson;
 
-	TfaHistoryStore(Path directory, Gson gson)
+	TfaHistoryStore(Filepath directory, Gson gson)
 	{
 		this.directory = directory;
 		this.gson = gson;
@@ -25,9 +25,9 @@ final class TfaHistoryStore
 	TfaTracker load(String profile) throws IOException
 	{
 		String json;
-		try
+		try (var input = file(profile).openInputStream())
 		{
-			json = Files.readString(file(profile));
+			json = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(input.readAllBytes())).toString();
 		}
 		catch (NoSuchFileException ex)
 		{
@@ -54,22 +54,22 @@ final class TfaHistoryStore
 
 	void save(String profile, TfaTracker tracker) throws IOException
 	{
-		Files.createDirectories(directory);
-		Path temporary = Files.createTempFile(directory, "history-", ".tmp");
+		directory.createDirectories();
+		Filepath temporary = directory.createTempFile("history-", ".tmp");
 		try
 		{
-			Files.writeString(temporary, gson.toJson(tracker));
-			Files.move(temporary, file(profile), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			temporary.write(gson.toJson(tracker));
+			temporary.moveTo(file(profile), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 		}
 		finally
 		{
-			Files.deleteIfExists(temporary);
+			temporary.deleteIfExists();
 		}
 	}
 
-	private Path file(String profile)
+	private Filepath file(String profile)
 	{
 		String name = BaseEncoding.base16().lowerCase().encode(profile.getBytes(StandardCharsets.UTF_8));
-		return directory.resolve(name + ".json");
+		return directory.joinSegment(name + ".json");
 	}
 }
